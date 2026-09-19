@@ -1,15 +1,21 @@
 'use client'
+
 import { useHeaderTheme } from '@/providers/HeaderTheme'
 import React, { useEffect } from 'react'
+import CookieConsentTest from '@/components/CookieConsentTest'
 
 const PageClient: React.FC = () => {
-  /* Force the header to be dark mode while we have an image behind it */
   const { setHeaderTheme } = useHeaderTheme()
 
   useEffect(() => {
     setHeaderTheme('light')
   }, [setHeaderTheme])
-  return <React.Fragment />
+
+  return (
+    <>
+      <CookieConsentTest />
+    </>
+  )
 }
 
 export default PageClient

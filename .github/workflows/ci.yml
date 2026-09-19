@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  verify:
+    name: Typecheck, lint, and integration tests
+    runs-on: ubuntu-latest
+
+    # Payload's dev-mode schema push (no migrations configured yet — see
+    # `payload.config.ts`) needs a real Postgres database to push against.
+    # This service container starts empty on every run, so there is no
+    # pre-existing schema to reconcile and none of the interactive
+    # drizzle-kit prompts that can come up against a long-lived dev database
+    # (e.g. "was this column renamed or dropped?") — each run always takes
+    # the unambiguous "create everything from scratch" path.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cloudlor_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cloudlor_ci
+      # CI-only values — never used outside this ephemeral run. Real secrets
+      # live in the deployment environment, not here.
+      PAYLOAD_SECRET: ci-test-secret-not-for-production
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      CRON_SECRET: ci-test-cron-secret-not-for-production
+      PREVIEW_SECRET: ci-test-preview-secret-not-for-production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # Matches pnpm-lock.yaml's lockfileVersion ('9.0') so the frozen
+          # install below can't drift from what's actually locked.
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Matches the Dockerfile's runtime (node:22.17.0-alpine).
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Run integration tests
+        run: pnpm run test:int

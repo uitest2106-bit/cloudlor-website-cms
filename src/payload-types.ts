@@ -72,6 +72,8 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    'cookie-scripts': CookieScript;
+    'publication-requests': PublicationRequest;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -94,6 +96,8 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'cookie-scripts': CookieScriptsSelect<false> | CookieScriptsSelect<true>;
+    'publication-requests': PublicationRequestsSelect<false> | PublicationRequestsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -112,10 +116,12 @@ export interface Config {
   globals: {
     header: Header;
     footer: Footer;
+    'cookie-settings': CookieSetting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    'cookie-settings': CookieSettingsSelect<false> | CookieSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -420,6 +426,7 @@ export interface Category {
 export interface User {
   id: number;
   name?: string | null;
+  role: 'user' | 'admin' | 'super_admin';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -774,6 +781,57 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cookie-scripts".
+ */
+export interface CookieScript {
+  id: number;
+  name: string;
+  provider: string;
+  category: 'necessary' | 'preferences' | 'statistics' | 'marketing';
+  description?: string | null;
+  /**
+   * The third-party script or configuration that will be used by the website.
+   */
+  script: string;
+  enabled?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "publication-requests".
+ */
+export interface PublicationRequest {
+  id: number;
+  /**
+   * The page or post this request is asking an admin to review and publish.
+   */
+  document:
+    | {
+        relationTo: 'pages';
+        value: number | Page;
+      }
+    | {
+        relationTo: 'posts';
+        value: number | Post;
+      };
+  /**
+   * Internal: the version of the document that was actually submitted for review. Set automatically.
+   */
+  documentUpdatedAt: string;
+  requestedBy: number | User;
+  status: 'pending' | 'approved' | 'rejected' | 'stale';
+  /**
+   * Required when rejecting a request.
+   */
+  rejectionReason?: string | null;
+  reviewedBy?: (number | null) | User;
+  reviewedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -981,6 +1039,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'cookie-scripts';
+        value: number | CookieScript;
+      } | null)
+    | ({
+        relationTo: 'publication-requests';
+        value: number | PublicationRequest;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1330,6 +1396,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1346,6 +1413,35 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cookie-scripts_select".
+ */
+export interface CookieScriptsSelect<T extends boolean = true> {
+  name?: T;
+  provider?: T;
+  category?: T;
+  description?: T;
+  script?: T;
+  enabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "publication-requests_select".
+ */
+export interface PublicationRequestsSelect<T extends boolean = true> {
+  document?: T;
+  documentUpdatedAt?: T;
+  requestedBy?: T;
+  status?: T;
+  rejectionReason?: T;
+  reviewedBy?: T;
+  reviewedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1682,6 +1778,44 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cookie-settings".
+ */
+export interface CookieSetting {
+  id: number;
+  enabled?: boolean | null;
+  title: string;
+  description: string;
+  allowAllLabel: string;
+  allowSelectionLabel: string;
+  denyLabel: string;
+  showDetailsLabel: string;
+  categories?: {
+    necessary?: {
+      enabled?: boolean | null;
+      label?: string | null;
+      description?: string | null;
+    };
+    preferences?: {
+      enabled?: boolean | null;
+      label?: string | null;
+      description?: string | null;
+    };
+    statistics?: {
+      enabled?: boolean | null;
+      label?: string | null;
+      description?: string | null;
+    };
+    marketing?: {
+      enabled?: boolean | null;
+      label?: string | null;
+      description?: string | null;
+    };
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -1721,6 +1855,54 @@ export interface FooterSelect<T extends boolean = true> {
               label?: T;
             };
         id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cookie-settings_select".
+ */
+export interface CookieSettingsSelect<T extends boolean = true> {
+  enabled?: T;
+  title?: T;
+  description?: T;
+  allowAllLabel?: T;
+  allowSelectionLabel?: T;
+  denyLabel?: T;
+  showDetailsLabel?: T;
+  categories?:
+    | T
+    | {
+        necessary?:
+          | T
+          | {
+              enabled?: T;
+              label?: T;
+              description?: T;
+            };
+        preferences?:
+          | T
+          | {
+              enabled?: T;
+              label?: T;
+              description?: T;
+            };
+        statistics?:
+          | T
+          | {
+              enabled?: T;
+              label?: T;
+              description?: T;
+            };
+        marketing?:
+          | T
+          | {
+              enabled?: T;
+              label?: T;
+              description?: T;
+            };
       };
   updatedAt?: T;
   createdAt?: T;

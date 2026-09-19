@@ -9,8 +9,9 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 
-import { authenticated } from '../../access/authenticated'
 import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
+import { canEditContent, canSetPublishedStatus } from '../../access/canEditContent'
+import { hasRole } from '../../access/hasRole'
 import { Banner } from '../../blocks/Banner/config'
 import { Code } from '../../blocks/Code/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
@@ -30,10 +31,10 @@ import { slugField } from 'payload'
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
   access: {
-    create: authenticated,
-    delete: authenticated,
+    create: hasRole(['user', 'admin', 'super_admin']),
+    delete: hasRole(['admin', 'super_admin']),
     read: authenticatedOrPublished,
-    update: authenticated,
+    update: canEditContent,
   },
   // This config controls what's populated by default when a post is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
@@ -215,6 +216,30 @@ export const Posts: CollectionConfig<'posts'> = {
       ],
     },
     slugField(),
+    // Overrides Payload's auto-injected drafts _status field. Contributors
+    // (role: 'user') can save drafts, but only admin/super_admin may set
+    // this to 'published' — enforced via canSetPublishedStatus on both
+    // create and update (create was previously unrestricted, letting a
+    // contributor publish a page directly at creation time).
+    // `options` is deliberately empty, not omitted: Payload deep-merges
+    // this override into its default drafts `_status` field (which already
+    // defines the draft/published options) by concatenating the two
+    // `options` arrays, so redeclaring the same two options here duplicated
+    // them in the generated Postgres enum
+    // (`CREATE TYPE ... AS ENUM('draft','published','draft','published')`),
+    // which fails schema push. `options: []` concatenates to the same two
+    // original options (nothing to add), which satisfies the `SelectField`
+    // type (which requires the key to be present) without reintroducing
+    // that duplication.
+    {
+      name: '_status',
+      type: 'select',
+      options: [],
+      access: {
+        create: canSetPublishedStatus,
+        update: canSetPublishedStatus,
+      },
+    },
   ],
   hooks: {
     afterChange: [revalidatePost],

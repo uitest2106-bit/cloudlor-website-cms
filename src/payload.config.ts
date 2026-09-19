@@ -8,7 +8,10 @@ import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
+import { PublicationRequests } from './collections/PublicationRequests'
 import { Users } from './collections/Users'
+import { CookieSettings } from './globals/CookieSettings'
+import { CookieScripts } from './collections/CookieScripts'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -27,6 +30,11 @@ export default buildConfig({
       // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
       // Feel free to delete this at any time. Simply remove the line below.
       beforeDashboard: ['@/components/BeforeDashboard'],
+      // Renders in the admin panel's header, next to the account avatar
+      // (top-right). Payload's default "Log out" link only lives inside
+      // the collapsible sidebar nav — this surfaces a directly visible one
+      // in the top-right profile area instead.
+      actions: ['@/components/LogoutAction'],
     },
     importMap: {
       baseDir: path.resolve(dirname),
@@ -62,9 +70,9 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users],
+  collections: [Pages, Posts, Media, Categories, Users, CookieScripts, PublicationRequests],
   cors: [getServerSideURL()].filter(Boolean),
-  globals: [Header, Footer],
+  globals: [Header, Footer, CookieSettings],
   plugins,
   secret: process.env.PAYLOAD_SECRET,
   sharp,

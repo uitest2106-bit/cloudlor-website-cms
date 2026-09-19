@@ -1,7 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
-import { authenticated } from '../../access/authenticated'
 import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
+import { canEditContent, canSetPublishedStatus } from '../../access/canEditContent'
+import { hasRole } from '../../access/hasRole'
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
@@ -24,10 +25,18 @@ import {
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
   access: {
-    create: authenticated,
-    delete: authenticated,
+    // Any authenticated user (contributor, admin, super_admin) may create
+    // pages. New pages default to draft status regardless of who creates
+    // them, per Payload's drafts config below.
+    create: hasRole(['user', 'admin', 'super_admin']),
+    // Only admin/super_admin may delete pages outright, including
+    // published ones. Contributors cannot delete content once it exists.
+    delete: hasRole(['admin', 'super_admin']),
     read: authenticatedOrPublished,
-    update: authenticated,
+    // Contributors (role: 'user') may update pages only while those pages
+    // remain unpublished. Admin/super_admin may update any page at any
+    // status, which covers reviewing and publishing a contributor's draft.
+    update: canEditContent,
   },
   // This config controls what's populated by default when a page is referenced
   // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
@@ -118,6 +127,30 @@ export const Pages: CollectionConfig<'pages'> = {
       },
     },
     slugField(),
+    // Overrides Payload's auto-injected drafts _status field. Contributors
+    // (role: 'user') can save drafts, but only admin/super_admin may set
+    // this to 'published' — enforced via canSetPublishedStatus on both
+    // create and update (create was previously unrestricted, letting a
+    // contributor publish a page directly at creation time).
+    // `options` is deliberately empty, not omitted: Payload deep-merges
+    // this override into its default drafts `_status` field (which already
+    // defines the draft/published options) by concatenating the two
+    // `options` arrays, so redeclaring the same two options here duplicated
+    // them in the generated Postgres enum
+    // (`CREATE TYPE ... AS ENUM('draft','published','draft','published')`),
+    // which fails schema push. `options: []` concatenates to the same two
+    // original options (nothing to add), which satisfies the `SelectField`
+    // type (which requires the key to be present) without reintroducing
+    // that duplication.
+    {
+      name: '_status',
+      type: 'select',
+      options: [],
+      access: {
+        create: canSetPublishedStatus,
+        update: canSetPublishedStatus,
+      },
+    },
   ],
   hooks: {
     afterChange: [revalidatePage],

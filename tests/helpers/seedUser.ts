@@ -4,6 +4,10 @@ import config from '../../src/payload.config.js'
 export const testUser = {
   email: 'dev@payloadcms.com',
   password: 'test',
+  // 'role' has a runtime defaultValue of 'user' on the Users collection,
+  // but it's a required field, so Payload's generated create() data type
+  // requires it explicitly.
+  role: 'user' as const,
 }
 
 /**

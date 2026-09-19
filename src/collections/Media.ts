@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url'
 
 import { anyone } from '../access/anyone'
 import { authenticated } from '../access/authenticated'
+import { hasRole } from '../access/hasRole'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -19,7 +20,9 @@ export const Media: CollectionConfig = {
   folders: true,
   access: {
     create: authenticated,
-    delete: authenticated,
+    // Only admin/super_admin can delete media, since files may already be
+    // in use on published pages/posts.
+    delete: hasRole(['admin', 'super_admin']),
     read: anyone,
     update: authenticated,
   },

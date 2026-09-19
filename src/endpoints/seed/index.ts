@@ -1,4 +1,4 @@
-import type { CollectionSlug, GlobalSlug, Payload, PayloadRequest, File } from 'payload'
+import type { CollectionSlug, Payload, PayloadRequest, File } from 'payload'
 
 import { contactForm as contactFormData } from './contact-form'
 import { contact as contactPageData } from './contact-page'
@@ -20,7 +20,7 @@ const collections: CollectionSlug[] = [
   'search',
 ]
 
-const globals: GlobalSlug[] = ['header', 'footer']
+const globals: ('header' | 'footer')[] = ['header', 'footer']
 
 const categories = ['Technology', 'News', 'Finance', 'Design', 'Software', 'Engineering']
 
@@ -105,6 +105,10 @@ export const seed = async ({
         name: 'Demo Author',
         email: 'demo-author@example.com',
         password: 'password',
+        // 'role' has a runtime defaultValue of 'user' on the Users
+        // collection, but it's a required field, so Payload's generated
+        // create() data type requires it explicitly.
+        role: 'user',
       },
     }),
     payload.create({
